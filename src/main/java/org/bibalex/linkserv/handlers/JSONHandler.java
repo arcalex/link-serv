@@ -38,12 +38,12 @@ public class JSONHandler {
         JSONObject JsonNodeProperties = jsonNode.getJSONObject(nodeId);
         if (JsonNodeProperties.isNull(PropertiesHandler.getProperty("versionKey"))) {
             Node node = new Node(nodeId, PropertiesHandler.getProperty("parentNodeLabel"),
-                    JsonNodeProperties.getString(PropertiesHandler.getProperty("labelKey")), null);
+                    JsonNodeProperties.getString(PropertiesHandler.getProperty("nameKey")), null);
             graphData.add(node);
             LOGGER.info("Parent Node Added: " + nodeId);
         } else {
             Node node = new Node(nodeId, PropertiesHandler.getProperty("versionNodeLabel"),
-                    JsonNodeProperties.getString(PropertiesHandler.getProperty("labelKey")),
+                    JsonNodeProperties.getString(PropertiesHandler.getProperty("nameKey")),
                     JsonNodeProperties.getString(PropertiesHandler.getProperty("versionKey")));
             graphData.add(node);
             LOGGER.info("Version Node Added: " + nodeId);
@@ -70,8 +70,7 @@ public class JSONHandler {
             return getGraphResults;
         }
 
-        /** get the actual timestamp of the returned root node in case of approximation later on,
-         where the given timestamp of the request is not necessarily equal to the actual one returned.**/
+        // get root node timestamp to later on implement approximation
         String nodeVersion = rootNode.getTimestamp();
         nodesNames.add(rootNode.getUrl());
         getGraphResults.add(addNodeToResults(rootNode));
@@ -83,7 +82,7 @@ public class JSONHandler {
     }
 
     private boolean validatePresenceOfAttributes(Node rootNode, int depth) {
-        if (rootNode.equals(null) || depth < 1) {
+        if (rootNode == null || depth < 1) {
             return false;
         }
         return true;
