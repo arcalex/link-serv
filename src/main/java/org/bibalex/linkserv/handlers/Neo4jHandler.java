@@ -15,12 +15,11 @@ import static org.neo4j.driver.v1.Values.parameters;
 
 public class Neo4jHandler {
 
+    private static final Logger LOGGER = LogManager.getLogger(Neo4jHandler.class);
     private String versionNodeLabel;
     private String parentNodeLabel;
     private String linkRelationshipType;
     private Session session;
-
-    private static final Logger LOGGER = LogManager.getLogger(Neo4jHandler.class);
 
     public Neo4jHandler() {
         this.versionNodeLabel = PropertiesHandler.getProperty("versionNodeLabel");
@@ -37,25 +36,39 @@ public class Neo4jHandler {
         return session;
     }
 
-    public Node getRootNode(String url, String timestamp) {
+    // get root node matching range of timestamps
+    public ArrayList<Node> getRootNodes(String url, String startTimestamp, String endTimestamp) {
+        Value parameterValues;
+        String query;
+        ArrayList<Node> rootNodes = new ArrayList<>();
+        Node rootNode;
 
-        LOGGER.info("Getting Root Node of URL: " + url + " with Timestamp: " + timestamp);
+        if (endTimestamp.isEmpty()) {
+            LOGGER.info("Getting Root Node of URL: " + url + " with Timestamp: " + startTimestamp);
+            parameterValues = parameters("version", startTimestamp, "url", url);
 
-        Node rootNode = null;
-        Value parameterValues = parameters("version", timestamp, "url", url);
+            query = "CALL linkserv." + PropertiesHandler.getProperty("getRootNodeProcedure") + "($url, $version);";
+        } else {
+            LOGGER.info("Getting root nodes in range: [" + startTimestamp + ", " + endTimestamp + "]");
+            parameterValues = parameters("url", url,
+                    "startTimestamp", startTimestamp,
+                    "endTimestamp", endTimestamp);
 
-        String query = "CALL linkserv." + PropertiesHandler.getProperty("getRootNodeProcedure") + "($url, $version);";
+            query = "CALL linkserv." + PropertiesHandler.getProperty("getRootNodesProcedure") +
+                    "($url, $startTimestamp, $endTimestamp);";
+        }
 
-        StatementResult result = getSession().run(query, parameterValues);
-
+        Result result = getSession().run(query, parameterValues);
         while (result.hasNext()) {
             Record rootNodeRecord = result.next();
+            System.out.println("Neo4j Handler: " + rootNodeRecord.get("nodeId"));
             rootNode = new Node(convertValueToString(rootNodeRecord.get("nodeId")),
                     versionNodeLabel,
                     convertValueToString(rootNodeRecord.get("parentName")),
                     convertValueToString(rootNodeRecord.get("versionName")));
+            rootNodes.add(rootNode);
         }
-        return rootNode;
+        return rootNodes;
     }
 
     // get closest version to rootNodeVersion, we'll just assume they're the same for now

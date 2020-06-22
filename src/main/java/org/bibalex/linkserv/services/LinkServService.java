@@ -19,9 +19,10 @@ public class LinkServService {
     private JSONHandler jsonHandler;
 
 
-    public String getGraph(String workspaceName, Integer depth) {
+    public String getGraph(String workspaceName, String endTimestamp, Integer depth) {
 
         jsonHandler = new JSONHandler(false);
+        ArrayList<JSONObject> graphJsonArray = new ArrayList<>();
 
         Map<String, String> workspaceNameParameters = workspaceNameHandler.splitWorkspaceName(workspaceName);
 
@@ -32,10 +33,13 @@ public class LinkServService {
         String timestamp = workspaceNameParameters.get(PropertiesHandler.getProperty("workspaceTimestamp"));
         String jsonResponse = "";
 
-        LOGGER.info("Get Graph of: " + url + " with Version: " + timestamp + " and Depth: " + depth);
-
-        ArrayList<JSONObject> graphJsonArray = jsonHandler.getGraph(url, timestamp, depth);
-
+        if (endTimestamp.isEmpty()) {
+            LOGGER.info("Get Graph of: " + url + " with Version: " + timestamp + " and Depth: " + depth);
+        } else {
+            LOGGER.info("Get Graph of: " + url + " in range: [" + timestamp + ", " +
+                    endTimestamp + "], and Depth: " + depth);
+        }
+        graphJsonArray = jsonHandler.getGraph(url, timestamp, endTimestamp, depth);
         for (JSONObject json : graphJsonArray) {
             jsonResponse += (json.toString()) + "\n";
         }

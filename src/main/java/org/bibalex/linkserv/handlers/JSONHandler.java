@@ -10,14 +10,14 @@ import java.util.Map;
 
 public class JSONHandler {
 
+    private static final int DEFAULT_ATTRIBUTE_VALUE = 1;
+    private static final Logger LOGGER = LogManager.getLogger(JSONHandler.class);
+    int versionNodesCount;
     private Neo4jHandler neo4jHandler;
     private Map<String, Node> graphNodes;
     private ArrayList<Edge> graphEdges;
     private boolean multipleURLs;
-    int versionNodesCount;
     private ArrayList<JSONObject> getGraphResults;
-
-    private static final int DEFAULT_ATTRIBUTE_VALUE = 1;
 
     public JSONHandler(boolean multipleURLs) {
         this.neo4jHandler = new Neo4jHandler();
@@ -76,25 +76,30 @@ public class JSONHandler {
         graphEdges.add(edge);
     }
 
-    public ArrayList<JSONObject> getGraph(String url, String timestamp, Integer depth) {
+    public ArrayList<JSONObject> getGraph(String url, String startTimestamp, String endTimestamp, Integer depth) {
 
         getGraphResults = new ArrayList<>();
         ArrayList<String> nodesNames = new ArrayList<>();
-        Node rootNode = neo4jHandler.getRootNode(url, timestamp);
+        ArrayList<Node> rootNodes;
 
-        if (!validatePresenceOfAttributes(rootNode, depth)) {
-            getGraphResults.add(new JSONObject());
-            LOGGER.info("No Results Found or Invalid Depth");
-            return getGraphResults;
-        }
+        rootNodes = neo4jHandler.getRootNodes(url, startTimestamp, endTimestamp);
 
-        // get root node timestamp to later on implement approximation
-        String nodeVersion = rootNode.getTimestamp();
-        nodesNames.add(rootNode.getUrl());
-        getGraphResults.add(addNodeToResults(rootNode));
+        String nodeVersion = "";
+        for (Node rootNode : rootNodes) {
+            if (!validatePresenceOfAttributes(rootNode, depth)) {
+                getGraphResults.add(new JSONObject());
+                LOGGER.info("No Results Found or Invalid Depth");
+                return getGraphResults;
+            }
 
-        for (int i = 0; i < depth; i++) {
-            nodesNames = getOutlinkNodes(nodesNames, nodeVersion);
+            // get root node timestamp to later on implement approximation
+            nodeVersion = rootNode.getTimestamp();
+            nodesNames.add(rootNode.getUrl());
+            getGraphResults.add(addNodeToResults(rootNode));
+
+            for (int i = 0; i < depth; i++) {
+                nodesNames = getOutlinkNodes(nodesNames, nodeVersion);
+            }
         }
         return getGraphResults;
     }
@@ -187,4 +192,5 @@ public class JSONHandler {
     public void setGraphEdges(ArrayList<Edge> graphEdges) {
         this.graphEdges = graphEdges;
     }
+
 }
