@@ -4,6 +4,7 @@ import org.bibalex.linkserv.handlers.JSONHandler;
 import org.bibalex.linkserv.handlers.Neo4jHandler;
 import org.bibalex.linkserv.handlers.PropertiesHandler;
 import org.bibalex.linkserv.handlers.WorkspaceNameHandler;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ public class LinkServService {
 
         String url = workspaceNameParameters.get(PropertiesHandler.getProperty("workspaceURL"));
         String timestamp = workspaceNameParameters.get(PropertiesHandler.getProperty("workspaceTimestamp"));
-        String getGraphResponse = "";
 
         if (timestamp.contains(timeRangeDelimiter)) {
             String[] timestamps = timestamp.split(timeRangeDelimiter, 2);
@@ -46,17 +46,31 @@ public class LinkServService {
         HashSet<String> uniqueGraphArray = new HashSet<>();
         uniqueGraphArray.addAll(graphArray);
 
-        for (String graphElement : uniqueGraphArray) {
-            getGraphResponse += graphElement + "\n";
-        }
+        return formulateResponse(new ArrayList<>(uniqueGraphArray), "\n");
+    }
 
-        if (getGraphResponse.isEmpty()) {
+    public String getVersions(String url, String dateTime) {
+        jsonHandler = new JSONHandler(false);
+        return formulateResponse(jsonHandler.getVersions(url, dateTime), ",");
+    }
+
+    public String getLatestVersion(String url) {
+        jsonHandler = new JSONHandler(false);
+        return formulateResponse(jsonHandler.getLatestVersion(url), "\n");
+    }
+
+    private String formulateResponse(ArrayList<String> stringResponse, String delimiter) {
+        String response = stringResponse.remove(0);
+        for (String responseObject : stringResponse) {
+            response += delimiter + responseObject;
+        }
+        if (response.isEmpty()) {
             LOGGER.info("No Match Found");
         } else {
-            LOGGER.debug("Graph Returned: " + getGraphResponse);
+            LOGGER.debug("Graph Returned: " + response);
             LOGGER.info("Returned Match Successfully");
         }
-        return getGraphResponse;
+        return response;
     }
 
     public String updateGraph(String jsonGraph, String workspaceName) {
@@ -100,23 +114,5 @@ public class LinkServService {
             LOGGER.info("Could not Update Graph");
         LOGGER.debug("JSON Data: " + jsonGraph);
         return "";
-    }
-
-    public String getVersionCountYearly(String url) {
-        jsonHandler = new JSONHandler(false);
-        String response = jsonHandler.getVersionCountYearly(url);
-        return response;
-    }
-
-    public String getVersionCountMonthly(String url, int year) {
-        jsonHandler = new JSONHandler(false);
-        String response = jsonHandler.getVersionCountMonthly(url, year);
-        return response;
-    }
-
-    public String getVersionCountDaily(String url, int year, int month) {
-        jsonHandler = new JSONHandler(false);
-        String response = jsonHandler.getVersionCountDaily(url, year, month);
-        return response;
     }
 }

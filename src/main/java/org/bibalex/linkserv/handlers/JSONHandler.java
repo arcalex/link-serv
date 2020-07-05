@@ -19,6 +19,7 @@ public class JSONHandler {
     private ArrayList<Edge> graphEdges;
     private boolean multipleURLs;
     private ArrayList<String> getGraphResults;
+    private int latestVersionDepth = Integer.parseInt(PropertiesHandler.getProperty("latestVersionDepth"));
 
     public JSONHandler(boolean multipleURLs) {
         this.neo4jHandler = new Neo4jHandler();
@@ -183,30 +184,19 @@ public class JSONHandler {
         return nodeData;
     }
 
-    public String getVersionCountYearly(String url) {
+    public ArrayList<String> getVersions(String url, String dateTime) {
+        ArrayList<Node> versionNodes = neo4jHandler.getVersions(url, dateTime);
+        ArrayList<String> nodeVersions = new ArrayList<>();
 
-        ArrayList<HistogramEntry> histogramEntries = neo4jHandler.getVersionCountYearly(url);
-        return convertHistogramArrayToJson(histogramEntries);
-    }
-
-    public String getVersionCountMonthly(String url, int year) {
-
-        ArrayList<HistogramEntry> histogramEntries = neo4jHandler.getVersionCountMonthly(url, year);
-        return convertHistogramArrayToJson(histogramEntries);
-    }
-
-    public String getVersionCountDaily(String url, int year, int month) {
-
-        ArrayList<HistogramEntry> histogramEntries = neo4jHandler.getVersionCountDaily(url, year, month);
-        return convertHistogramArrayToJson(histogramEntries);
-    }
-
-    private String convertHistogramArrayToJson(ArrayList<HistogramEntry> histogramEntries) {
-        JSONObject histogramJson = new JSONObject();
-        for (HistogramEntry histogramEntry : histogramEntries) {
-            histogramJson.put(String.valueOf(histogramEntry.getKey()), histogramEntry.getCount());
+        for (Node versionNode : versionNodes) {
+            nodeVersions.add(versionNode.getTimestamp());
         }
-        return histogramJson.toString();
+        return nodeVersions;
+    }
+
+    public ArrayList<String> getLatestVersion(String url) {
+        Node latestVersionNode = neo4jHandler.getLatestVersion(url).get(0);
+        return getGraph(latestVersionNode.getUrl(), latestVersionNode.getTimestamp(), latestVersionDepth);
     }
 
     public Map<String, Node> getGraphNodes() {
@@ -224,5 +214,4 @@ public class JSONHandler {
     public void setGraphEdges(ArrayList<Edge> graphEdges) {
         this.graphEdges = graphEdges;
     }
-
 }
