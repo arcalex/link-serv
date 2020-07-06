@@ -2,6 +2,7 @@ package org.bibalex.linkserv.controllers;
 
 import org.bibalex.linkserv.errors.OperationNotFoundException;
 import org.bibalex.linkserv.handlers.PropertiesHandler;
+import org.bibalex.linkserv.handlers.WorkspaceNameHandler;
 import org.bibalex.linkserv.services.LinkServService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -50,11 +51,17 @@ public class LinkServController {
                                                 @RequestParam(required = false) String dateTime) {
 
         PropertiesHandler.initializeProperties();
+        WorkspaceNameHandler workspaceNameHandler = new WorkspaceNameHandler();
         String requestURL = request.getRequestURL().toString();
-        String workspaceName = requestURL.split(PropertiesHandler.getProperty("repositoryIP"))[1];
-        String response = "";
+        String[] urlParams = requestURL.split(PropertiesHandler.getProperty("repositoryIP"));
 
+        if (urlParams.length < 2) {
+            return ResponseEntity.badRequest().body("Please, send a valid URL");
+        }
+
+        String workspaceName = urlParams[1];
         switch (operation) {
+
             case "getGraph":
                 String response = linkServService.getGraph(workspaceName, depth);
                 if (response.equals(PropertiesHandler.getProperty("badRequestResponseStatus")))
@@ -62,14 +69,37 @@ public class LinkServController {
                 LOGGER.info("Response Status: 200");
                 return ResponseEntity.ok(response);
 
+            case "getVersionCountYearly":
+                if (workspaceNameHandler.validateURL(workspaceName)) {
+                    return ResponseEntity.ok(linkServService.getVersionCountYearly(workspaceName));
+                }
+                return ResponseEntity.badRequest().body("Please, send a valid URL");
+
+            case "getVersionCountMonthly":
+                if (year == null || !(workspaceNameHandler.validateURL(workspaceName))) {
+                    return ResponseEntity.badRequest().body("Please, send a valid URL and year");
+                }
+                return ResponseEntity.ok(linkServService.getVersionCountMonthly(workspaceName, year));
+
+            case "getVersionCountDaily":
+                if (year == null || month == null || month < 1 || month > 12
+                        || !(workspaceNameHandler.validateURL(workspaceName))) {
+                    return ResponseEntity.badRequest().body("Please, send a valid URL, year and month");
+                }
+                return ResponseEntity.ok(linkServService.getVersionCountDaily(workspaceName, year, month));
+
             case "getVersions":
-                if (dateTime == null || !(dateTime.matches("[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])")))
-                    return ResponseEntity.badRequest().body("Please, send a valid date-time");
-                else
-                    return ResponseEntity.ok(linkServService.getVersions(workspaceName, dateTime));
+                if (dateTime == null || !(dateTime.matches("[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])"))
+                        || !(workspaceNameHandler.validateURL(workspaceName))) {
+                    return ResponseEntity.badRequest().body("Please, send a valid URL and date-time");
+                }
+                return ResponseEntity.ok(linkServService.getVersions(workspaceName, dateTime));
 
             case "getLatestVersion":
-                return ResponseEntity.ok(linkServService.getLatestVersion(workspaceName));
+                if (workspaceNameHandler.validateURL(workspaceName)) {
+                    return ResponseEntity.ok(linkServService.getLatestVersion(workspaceName));
+                }
+                return ResponseEntity.badRequest().body("Please, send a valid URL");
 
             default:
                 LOGGER.error("Response Status: 500, Operation Not Found: " + operation);
