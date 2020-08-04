@@ -8,10 +8,11 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class JSONHandler {
 
-    private static final int DEFAULT_ATTRIBUTE_VALUE = 1;
+    private static final int DEFAULT_ATTRIBUTE_VALUE = 0;
     private static final Logger LOGGER = LogManager.getLogger(JSONHandler.class);
     int versionNodesCount;
     private Neo4jHandler neo4jHandler;
@@ -194,7 +195,7 @@ public class JSONHandler {
         outlinkEdgeData.put("r", DEFAULT_ATTRIBUTE_VALUE);
         outlinkEdgeData.put("g", DEFAULT_ATTRIBUTE_VALUE);
         outlinkEdgeData.put("b", DEFAULT_ATTRIBUTE_VALUE);
-        outlinkEdgeData.put("weight", DEFAULT_ATTRIBUTE_VALUE);
+        outlinkEdgeData.put("weight", 1);
 
         JSONObject fullEdge = new JSONObject();
         fullEdge.put(edge.getId(), outlinkEdgeData);
@@ -207,11 +208,19 @@ public class JSONHandler {
 
     private JSONObject setDefaultNodeAttributes(JSONObject nodeData) {
 
-        String[] attributes = PropertiesHandler.getProperty("nodeAttributes").split(",");
+        String[] colorAttributes = PropertiesHandler.getProperty("colorAttributes").split(",");
+        String[] spatialCoordinates = PropertiesHandler.getProperty("spatialCoordinates").split(",");
 
-        for (String attribute : attributes) {
-            nodeData.put(attribute, DEFAULT_ATTRIBUTE_VALUE);
+        for (String colorAttribute : colorAttributes) {
+            Random rand = new Random();
+            nodeData.put(colorAttribute, rand.nextFloat());
         }
+
+        for (String spatialCoordinate : spatialCoordinates) {
+            Random rand = new Random();
+            nodeData.put(spatialCoordinate, rand.nextInt(500));
+        }
+
         return nodeData;
     }
 
