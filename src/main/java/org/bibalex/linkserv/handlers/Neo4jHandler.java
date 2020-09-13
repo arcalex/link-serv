@@ -23,6 +23,7 @@ public class Neo4jHandler {
     private Session session;
     private String query;
     private Value parameterValues;
+    private Driver driver;
 
     public Neo4jHandler() {
         this.versionNodeLabel = PropertiesHandler.getProperty("versionNodeLabel");
@@ -32,7 +33,10 @@ public class Neo4jHandler {
 
     public Session getSession() {
         if (session == null || !session.isOpen()) {
-            Driver driver = GraphDatabase.driver(PropertiesHandler.getProperty("uri"));
+            if (driver != null) {
+                driver.close();
+            }
+            driver = GraphDatabase.driver(PropertiesHandler.getProperty("uri"));
             session = driver.session();
         }
 
@@ -67,7 +71,6 @@ public class Neo4jHandler {
         parameterValues = parameters("url", url, "dateTime", dateTime);
         query = "CALL linkserv." + PropertiesHandler.getProperty("getVersionsProcedure") +
                 "($url, $dateTime);";
-
         return runGetNodeQuery(query, parameterValues);
     }
 
