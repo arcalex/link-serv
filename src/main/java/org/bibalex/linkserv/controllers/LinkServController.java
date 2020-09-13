@@ -1,5 +1,7 @@
 package org.bibalex.linkserv.controllers;
 
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.bibalex.linkserv.errors.OperationNotFoundException;
 import org.bibalex.linkserv.handlers.PropertiesHandler;
 import org.bibalex.linkserv.handlers.WorkspaceNameHandler;
@@ -51,7 +53,6 @@ public class LinkServController {
                                                 @RequestParam(required = false, defaultValue = "1") Integer depth,
                                                 @RequestParam(required = false) Integer year,
                                                 @RequestParam(required = false) Integer month,
-                                                @RequestParam(required = false) Integer day,
                                                 @RequestParam(required = false) String dateTime) {
 
         PropertiesHandler.initializeProperties();

@@ -1,9 +1,14 @@
 package org.bibalex.linkserv.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class WorkspaceNameHandler {
+
+    private static final Logger LOGGER = LogManager.getLogger(WorkspaceNameHandler.class);
 
     public Map<String, String> splitWorkspaceName(String workspaceName) {
 

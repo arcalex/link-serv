@@ -1,5 +1,7 @@
 package org.bibalex.linkserv.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bibalex.linkserv.handlers.JSONHandler;
 import org.bibalex.linkserv.handlers.Neo4jHandler;
 import org.bibalex.linkserv.handlers.PropertiesHandler;
@@ -16,8 +18,9 @@ public class LinkServService {
 
     private WorkspaceNameHandler workspaceNameHandler = new WorkspaceNameHandler();
     private Neo4jHandler neo4jHandler = new Neo4jHandler();
-    private JSONHandler jsonHandler;
+    private JSONHandler jsonHandler = new JSONHandler();
 
+    private static final Logger LOGGER = LogManager.getLogger(LinkServService.class);
 
     public String updateGraph(String jsonGraph, String workspaceName) {
         boolean done, multipleURLs = false;
@@ -34,8 +37,7 @@ public class LinkServService {
             url = workspaceNameParameters.get(PropertiesHandler.getProperty("workspaceURL"));
             timestamp = workspaceNameParameters.get(PropertiesHandler.getProperty("workspaceTimestamp"));
         }
-
-        jsonHandler = new JSONHandler(multipleURLs);
+        jsonHandler.initialize(multipleURLs);
         if (!jsonGraph.startsWith("{") && jsonGraph.contains("&")) {
             jsonGraph = jsonGraph.split("&")[1];
         }
@@ -65,7 +67,7 @@ public class LinkServService {
     public String getGraph(String workspaceName, Integer depth) {
 
         String timeRangeDelimiter = PropertiesHandler.getProperty("timeRangeDelimiter");
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
 
         ArrayList<String> graphArray;
 
@@ -93,33 +95,33 @@ public class LinkServService {
     }
 
     public String getVersions(String url, String dateTime) {
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
         ArrayList<String> responseStringArray = jsonHandler.getVersions(url, dateTime);
         return formulateResponse(responseStringArray, ",");
     }
 
     public String getLatestVersion(String url) {
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
         ArrayList<String> reponseStringArray = jsonHandler.getLatestVersion(url);
         return formulateResponse(reponseStringArray, "\r\n");
     }
 
     public String getVersionCountYearly(String url) {
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
         String response = jsonHandler.getVersionCountYearly(url);
         LOGGER.info("Reponse: " + response);
         return response;
     }
 
     public String getVersionCountMonthly(String url, int year) {
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
         String response = jsonHandler.getVersionCountMonthly(url, year);
         LOGGER.info("Reponse: " + response);
         return response;
     }
 
     public String getVersionCountDaily(String url, int year, int month) {
-        jsonHandler = new JSONHandler(false);
+        jsonHandler.initialize(false);
         String response = jsonHandler.getVersionCountDaily(url, year, month);
         LOGGER.info("Reponse: " + response);
         return response;

@@ -1,18 +1,19 @@
 package org.bibalex.linkserv.handlers;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bibalex.linkserv.models.Edge;
 import org.bibalex.linkserv.models.HistogramEntry;
 import org.bibalex.linkserv.models.Node;
-import org.neo4j.driver.v1.*;
+import org.neo4j.driver.*;
+import org.neo4j.driver.Record;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.neo4j.driver.v1.Values.parameters;
+import static org.neo4j.driver.Values.parameters;
 
 public class Neo4jHandler {
 
@@ -23,6 +24,7 @@ public class Neo4jHandler {
     private Session session;
     private String query;
     private Value parameterValues;
+    private Driver driver;
 
     public Neo4jHandler() {
         this.versionNodeLabel = PropertiesHandler.getProperty("versionNodeLabel");
@@ -32,13 +34,16 @@ public class Neo4jHandler {
 
     public Session getSession() {
         if (session == null || !session.isOpen()) {
-            Driver driver = GraphDatabase.driver(PropertiesHandler.getProperty("uri"));
+            if (driver != null) {
+                driver.close();
+            }
+            driver = GraphDatabase.driver(PropertiesHandler.getProperty("uri"));
             session = driver.session();
         }
-
         return session;
     }
 
+    // get root node matching exact timestamp
     public ArrayList<Node> getRootNode(String url, String timestamp) {
         LOGGER.info("Getting root node of URL: " + url + " with timestamp: " + timestamp);
         parameterValues = parameters("version", timestamp, "url", url);
@@ -67,7 +72,6 @@ public class Neo4jHandler {
         parameterValues = parameters("url", url, "dateTime", dateTime);
         query = "CALL linkserv." + PropertiesHandler.getProperty("getVersionsProcedure") +
                 "($url, $dateTime);";
-
         return runGetNodeQuery(query, parameterValues);
     }
 
@@ -106,7 +110,7 @@ public class Neo4jHandler {
 
         query = "CALL linkserv." + PropertiesHandler.getProperty("getOutlinkNodesProcedure") + "($name, $version);";
 
-        StatementResult result = getSession().run(query, parameterValues);
+        Result result = getSession().run(query, parameterValues);
 
         while (result.hasNext()) {
 
