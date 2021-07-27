@@ -10,7 +10,7 @@ public class RootNode {
     public String versionName;
 
     public RootNode(Map<String, Object> data) {
-        this.nodeId = String.valueOf(data.get("ID(v)"));
+        this.nodeId = String.valueOf(data.get("ID(n)"));
         this.nodeURL = String.valueOf(data.get("n." + Constants.nameProperty));
         this.versionName = String.valueOf(data.get("v." + Constants.versionProperty));
     }

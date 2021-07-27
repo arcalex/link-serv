@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>neo4j-procedures</groupId>
-    <artifactId>neo4j-procedures</artifactId>
+    <groupId>org.example</groupId>
+    <artifactId>neo4jClusterManager</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <dependencies>
@@ -20,8 +20,21 @@
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
             <version>LATEST</version>
-            <!--<scope>provided</scope>-->
         </dependency>
+
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20180130</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
+        </dependency>
+
 
     </dependencies>
 
@@ -58,5 +71,6 @@
             </plugin>
         </plugins>
     </build>
+
 
 </project>

@@ -7,8 +7,8 @@ public class HistogramEntry {
     public Number count;
 
     public HistogramEntry(Map<String, Object> data) {
-        this.key = (Number) data.get("key");
-        this.count = (Number) data.get("count");
+        this.key = Long.valueOf((String) data.get("key"));
+        this.count = Long.valueOf((Long) data.get("count"));
     }
 
 }

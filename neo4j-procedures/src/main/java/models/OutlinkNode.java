@@ -6,6 +6,7 @@ import java.util.Map;
 
 public class OutlinkNode {
     public String parentId;
+    public String outlinkParentId;
     public String parentVersionId;
     public String outlinkVersionId;
     public String relationshipId;
@@ -13,7 +14,8 @@ public class OutlinkNode {
     public String outlinkVersion;
 
     public OutlinkNode(Map<String, Object> data) {
-        this.parentId = String.valueOf(data.get("ID(parent2)").toString());
+        this.parentId = String.valueOf(data.get("ID(parent1)").toString());
+        this.outlinkParentId = String.valueOf(data.get("ID(parent2)").toString());
         this.parentVersionId = String.valueOf(data.get("ID(version1)"));
         this.outlinkVersionId = String.valueOf(data.get("ID(version2)"));
         this.relationshipId = String.valueOf(data.get("ID(r)"));
