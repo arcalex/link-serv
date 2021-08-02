@@ -132,7 +132,7 @@ public class ArangoDBConnectionHandler {
 
     public ArangoCursor<Object> executeLinkDataQuery(String query, MapBuilder paramMapBuilder) {
         checkConnection();
-        while(true) {
+//        while(true) {
             try {
                 return linkData.query(
                         query,
@@ -142,13 +142,15 @@ public class ArangoDBConnectionHandler {
                 );
             } catch (Exception e) {
                 e.printStackTrace();
+                return null;
             }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//                return null;
+//            }
+//        }
     }
 
     public MultiDocumentEntity<DocumentCreateEntity<BaseDocument>> insertNodes(String collectionName, ArrayList<BaseDocument> nodesToInsert) {
@@ -170,6 +172,7 @@ public class ArangoDBConnectionHandler {
             }
             batch.add(edgesToInsert.get(i));
         }
+        importBatch(batch, collectionName);
     }
 
     private void importBatch(ArrayList<BaseEdgeDocument> edgesToInsert, String collectionName) {

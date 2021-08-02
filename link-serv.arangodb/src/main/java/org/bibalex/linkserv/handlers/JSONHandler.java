@@ -85,11 +85,11 @@ public class JSONHandler {
     }
 
     public ArrayList<String> getGraph(String identifier, String timestamp, Integer depth) {
-        return runGetGraphResults(arangoDBHandler.getRootNode(identifier, timestamp), depth);
+        return runGetGraphResults(arangoDBHandler.getRootNode(identifier, timestamp), depth, null, null);
     }
 
     public ArrayList<String> getGraph(String identifier, String startTimestamp, String endTimestamp, Integer depth) {
-        return runGetGraphResults(arangoDBHandler.getRootNodes(identifier, startTimestamp, endTimestamp), depth);
+        return runGetGraphResults(arangoDBHandler.getRootNodes(identifier, startTimestamp, endTimestamp), depth, startTimestamp, endTimestamp);
     }
 
     public ArrayList<String> getVersions(String identifier, String dateTime) {
@@ -147,7 +147,7 @@ public class JSONHandler {
         this.graphEdges = graphEdges;
     }
 
-    private ArrayList<String> runGetGraphResults(ArrayList<Node> rootNodes, int depth) {
+    private ArrayList<String> runGetGraphResults(ArrayList<Node> rootNodes, int depth, String startTimestamp, String endTimestamp) {
         getGraphResultsHashSet = new HashSet<>();
         getGraphResults = new ArrayList<>();
         ArrayList<Object> outlinks;
@@ -159,7 +159,7 @@ public class JSONHandler {
                 return getGraphResults;
             }
             getGraphResultsHashSet.add(String.valueOf((new JSONObject(rootNode))));
-            outlinks = arangoDBHandler.getOutlinks(rootNode, depth);
+            outlinks = arangoDBHandler.getOutlinks(rootNode, depth, startTimestamp, endTimestamp);
             for (Object outlink : outlinks){
                 getGraphResultsHashSet.add(String.valueOf(new JSONObject(outlink)));
             }

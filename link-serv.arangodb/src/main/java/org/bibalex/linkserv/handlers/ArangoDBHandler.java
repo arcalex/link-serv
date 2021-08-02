@@ -98,7 +98,8 @@ public class ArangoDBHandler {
         query = "FOR node IN @@nodesCollection FILTER node.@nameKey == @identifier \n" +
                 "AND TO_NUMBER(node.@versionKey) IN TO_NUMBER(@startTimestamp)..TO_NUMBER(@endTimestamp) RETURN node";
         ArangoCursor<Object> rootNodeArangoCursor = arangoDBConnectionHandler.executeLinkDataQuery(query, paramMapBuilder);
-        if (rootNodeArangoCursor.hasNext()) {
+
+        while (rootNodeArangoCursor.hasNext()) {
             rootNodesArray.add(createNewNode((HashMap) rootNodeArangoCursor.next()));
         }
         try {
@@ -116,7 +117,7 @@ public class ArangoDBHandler {
         return simpleDateFormat.format(new Date());
     }
 
-    public ArrayList<Object> getOutlinks(Node rootNode, Integer depth) {
+    public ArrayList<Object> getOutlinks(Node rootNode, Integer depth, String startTimestamp, String endTimestamp) {
         //getOutlinks
         String nodesPrefix = nodesCollectionName + "/";
         ArrayList<Object> outlinks = new ArrayList<>();
@@ -134,24 +135,34 @@ public class ArangoDBHandler {
             for (Node node : nodes) {
                 if(node.getType().equals(versionNodeLabel)){
                     outlinksPerStep = getOutlinksPerStep(node);
-                    Node existingVersion;
-                    Node outlinkNode;
+                    ArrayList<Node> existingVersions;
                     Edge outlinkEdge;
                     for (HashMap outlinkObject : outlinksPerStep) {
                         Object returnedOutlinkNode = outlinkObject.get("node");
                         String outlinkEdgeId = String.valueOf(outlinkObject.get("edgeID"));
-                        existingVersion = getExistingVersion((HashMap) returnedOutlinkNode, rootNode);
-                        outlinkNode = isNull(existingVersion) ? createNewNode((HashMap) returnedOutlinkNode) : existingVersion;
-                        outlinks.add(outlinkNode);
-                        outlinkEdge = new Edge(outlinkEdgeId, edgesCollectionName, node.getId(), outlinkNode.getId());
-                        outlinks.add(outlinkEdge);
-                        returnedNodes.add(outlinkNode);
+
+                        existingVersions = getExistingVersions((HashMap) returnedOutlinkNode, rootNode, startTimestamp, endTimestamp);
+
+                        if(existingVersions.isEmpty()) {
+                            Node outlinkNode = createNewNode((HashMap) returnedOutlinkNode);
+                            outlinks.add(outlinkNode);
+                            outlinkEdge = new Edge(outlinkEdgeId, edgesCollectionName, node.getId(), outlinkNode.getId());
+                            outlinks.add(outlinkEdge);
+                        }
+                        else {
+                            outlinks.addAll(existingVersions);
+                            for(Node existingVersion : existingVersions) {
+                                outlinkEdge = new Edge(outlinkEdgeId, edgesCollectionName, node.getId(), existingVersion.getId());
+                                outlinks.add(outlinkEdge);
+                            }
+                        }
+                        returnedNodes.addAll(existingVersions);
                     }
                 }
-                nodes.clear();
-                nodes.addAll(returnedNodes);
-                returnedNodes.clear();
             }
+            nodes.clear();
+            nodes.addAll(returnedNodes);
+            returnedNodes.clear();
         }
         return outlinks;
     }
@@ -178,20 +189,37 @@ public class ArangoDBHandler {
         return outlinks;
     }
 
-    private Node getExistingVersion(HashMap node, Node rootNode) {
-        paramMapBuilder = new MapBuilder().
-                put("@nodesCollection", nodesCollectionName).
-                put("nameKey", nameKey).
-                put("identifier", node.get(nameKey)).
-                put("versionKey", versionKey).
-                put("timestamp", rootNode.getTimestamp());
+    private ArrayList<Node> getExistingVersions(HashMap node, Node rootNode, String startTimestamp, String endTimestamp) {
+        ArrayList<Node> existingVersions = new ArrayList<>();
 
-        query = "FOR node IN @@nodesCollection FILTER node.@nameKey == @identifier \n" +
-                "AND node.@versionKey == TO_STRING(@timestamp) \n" +
-                "RETURN node";
+
+        if(startTimestamp == null && endTimestamp == null) {
+            paramMapBuilder = new MapBuilder().
+                    put("@nodesCollection", nodesCollectionName).
+                    put("nameKey", nameKey).
+                    put("identifier", node.get(nameKey)).
+                    put("versionKey", versionKey).
+                    put("timestamp", rootNode.getTimestamp());
+            query = "FOR node IN @@nodesCollection FILTER node.@nameKey == @identifier \n" +
+                    "AND node.@versionKey == TO_STRING(@timestamp) \n" +
+                    "RETURN node";
+        }
+        else {
+            paramMapBuilder = new MapBuilder().
+                    put("@nodesCollection", nodesCollectionName).
+                    put("nameKey", nameKey).
+                    put("identifier", node.get(nameKey)).
+                    put("versionKey", versionKey).
+                    put("startTimestamp", startTimestamp).
+                    put("endTimestamp", endTimestamp);
+
+            query = "FOR node IN @@nodesCollection FILTER node.@nameKey == @identifier \n" +
+                    "AND TO_NUMBER(node.@versionKey) IN TO_NUMBER(@startTimestamp)..TO_NUMBER(@endTimestamp) \n" +
+                    "RETURN node";
+        }
 
         ArangoCursor<Object> existingVersionArangoCursor = arangoDBConnectionHandler.executeLinkDataQuery(query, paramMapBuilder);
-        if (existingVersionArangoCursor.hasNext()) {
+        while (existingVersionArangoCursor.hasNext()) {
             HashMap<String, String> existingVersion = (HashMap) existingVersionArangoCursor.next();
             try {
                 existingVersionArangoCursor.close();
@@ -199,9 +227,9 @@ public class ArangoDBHandler {
                 e.printStackTrace();
                 return null;
             }
-            return (createNewNode(existingVersion));
+            existingVersions.add(createNewNode(existingVersion));
         }
-        return null;
+        return existingVersions;
     }
 
     public ArrayList<Node> getVersions(String identifier, String dateTime) {
@@ -422,15 +450,15 @@ public class ArangoDBHandler {
         try {
             nodes = arangoDBConnectionHandler.insertNodes(nodesCollectionName, nodesToImport);
             LOGGER.info("Done importing in: " + Float.valueOf(new Date().getTime() - startTime) + " ms");
-            matchNodes(graphNodes, nodes.getDocumentsAndErrors());
+            return matchNodes(graphNodes, nodes.getDocumentsAndErrors());
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-        return true;
+//        return true;
     }
 
-    private void matchNodes(ArrayList<JSONObject> graphNodes, Collection<Object> nodesDocumentsAndErrors) {
+    private boolean matchNodes(ArrayList<JSONObject> graphNodes, Collection<Object> nodesDocumentsAndErrors) {
         HashMap<String, String> graphNodesMap = getGraphNodesMap(graphNodes);
         int duplicatesCount = 0;
         int newCount = 0;
@@ -455,14 +483,18 @@ public class ArangoDBHandler {
                 existingNode = (BaseDocument) ((DocumentCreateEntity) node).getNew();
                 newCount++;
             }
+
             String nodeRequestID = isNull(existingNode.getAttribute(versionKey)) ?
                     graphNodesMap.get(existingNode.getAttribute(nameKey)) :
                     graphNodesMap.get(existingNode.getAttribute(versionKey) + "," + existingNode.getAttribute(nameKey));
             nodeIDs.put(nodeRequestID, existingNode.getId());
+            LOGGER.info("=================================");
+            LOGGER.info("nodesID: " + nodeIDs.hashCode() + "RequestId: " + nodeRequestID + " ArangoDBId: " + existingNode.getId() + " url and timestamp: " +
+                    existingNode.getAttribute(versionKey) + "," + existingNode.getAttribute(nameKey));
         }
-        updateDuplicates(duplicatesCount);
         LOGGER.info("Number of newly inserted nodes: " + newCount);
         LOGGER.info("Number of duplicate nodes: " + duplicatesCount);
+        return updateDuplicates(duplicatesCount);
     }
 
     private HashMap<String, String> getGraphNodesMap(ArrayList<JSONObject> graphNodes) {
@@ -477,11 +509,13 @@ public class ArangoDBHandler {
     }
 
     //TO-DO: Revisit Later
-    private void updateDuplicates(int duplicatesCount) {
-        paramMapBuilder = new MapBuilder().put("duplicatesCount", duplicatesCount);
-        query = "FOR d IN duplicates\n" +
-                "UPDATE d WITH {count: d.count+@duplicatesCount} IN duplicates";
-        arangoDBConnectionHandler.executeLinkDataQuery(query, paramMapBuilder);
+    private boolean updateDuplicates(int duplicatesCount) {
+//        paramMapBuilder = new MapBuilder().put("duplicatesCount", duplicatesCount);
+//        query = "FOR d IN duplicates\n" +
+//                "UPDATE d WITH {count: d.count+@duplicatesCount} IN duplicates";
+//        if(arangoDBConnectionHandler.executeLinkDataQuery(query, paramMapBuilder) == null)
+//            return false;
+        return true;
     }
 
     private ArrayList<BaseEdgeDocument> prepareEdgesForArangoImport(ArrayList<Edge> graphEdges) {

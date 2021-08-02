@@ -6,10 +6,14 @@ import org.bibalex.linkserv.handlers.*;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
+import static java.util.Objects.isNull;
 import static org.bibalex.linkserv.handlers.PropertiesHandler.getProperty;
 
 @Service
@@ -23,7 +27,7 @@ public class LinkServService {
     }
 
     public String updateGraph(String jsonGraph, String workspaceName) {
-        /** TO-DO: clean up **/
+        /** TODO: clean up **/
         WorkspaceNameHandler workspaceNameHandler = new WorkspaceNameHandler();
         ArangoDBHandler arangoDBHandler = new ArangoDBHandler();
         JSONHandler jsonHandler  = new JSONHandler();
@@ -48,12 +52,13 @@ public class LinkServService {
             jsonGraph = jsonGraph.split("&")[1];
         }
         // Gephi uses \r as delimiter between lines
-        String[] jsonLines = jsonGraph.replace("\n", "").split("\\\\r");
+        String[] jsonLines = jsonGraph.replace("\n", "").split("\\r");
         LOGGER.info("Parsing incoming request body");
         Long startTime = new Date().getTime();
 
         for (String jsonLine : jsonLines) {
             if (!jsonLine.equals("")) {
+                LOGGER.info(jsonLine);
                 done = jsonHandler.addNodesAndEdgesFromJSONLine(jsonLine, identifier, timestamp);
                 if (!done)
                     return getProperty("badRequestResponseStatus");
@@ -73,18 +78,40 @@ public class LinkServService {
         return "";
     }
 
-    public String getGraph(String identifier, String timestamp, Integer depth) {
+    public String getGraph(String identifier, String timestamp, Integer depth, Integer timeElasticity) {
         JSONHandler jsonHandler  = new JSONHandler();
 
         String timeRangeDelimiter = PropertiesHandler.getProperty("timeRangeDelimiter");
         ArrayList<String> graphArray;
+        String startTimestamp="";
+        String endTimestamp="";
         jsonHandler.initialize(false);
+
         if (timestamp.contains(timeRangeDelimiter)) {
             String[] timestamps = timestamp.split(timeRangeDelimiter, 2);
-            String startTimestamp = timestamps[0];
-            String endTimestamp = timestamps[1];
+            startTimestamp = timestamps[0];
+            endTimestamp = timestamps[1];
             graphArray = jsonHandler.getGraph(identifier, startTimestamp, endTimestamp, depth);
-        } else {
+        } else if(!isNull(timeElasticity)){
+
+            try {
+                SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmSS");
+                Date d = df.parse(timestamp);
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(d);
+                cal.add(Calendar.MINUTE, -timeElasticity);
+                startTimestamp = df.format(cal.getTime());
+                cal.setTime(d);
+                cal.add(Calendar.MINUTE, timeElasticity);
+                endTimestamp = df.format(cal.getTime());
+
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            graphArray = jsonHandler.getGraph(identifier, startTimestamp, endTimestamp, depth);
+        }
+        else {
             graphArray = jsonHandler.getGraph(identifier, timestamp, depth);
         }
         return formulateResponse(graphArray, "\r\n");

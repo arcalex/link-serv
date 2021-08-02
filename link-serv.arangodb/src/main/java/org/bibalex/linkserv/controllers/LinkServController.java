@@ -60,6 +60,7 @@ public class LinkServController {
                                                 @RequestParam String operation,
                                                 @RequestParam String identifier,
                                                 @RequestParam(required = false) String timestamp,
+                                                @RequestParam(required = false) Integer timeElasticity,
                                                 @RequestParam(required = false, defaultValue = "1") Integer depth,
                                                 @RequestParam(required = false) Integer year,
                                                 @RequestParam(required = false) Integer month,
@@ -77,7 +78,7 @@ public class LinkServController {
 
             case "getGraph":
                 if(requestParametersValidator.validateGetGraphParameters(identifier, timestamp, depth)){
-                    String response = linkServService.getGraph(identifier, timestamp, depth);
+                    String response = linkServService.getGraph(identifier, timestamp, depth, timeElasticity);
                     LOGGER.info("Response Status: 200 - OK");
                     return ResponseEntity.ok(response);
                 }
